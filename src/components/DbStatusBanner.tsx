@@ -10,22 +10,18 @@ export default function DbStatusBanner({
   message,
   movieCount,
 }: DbStatusBannerProps) {
+  // در حالت سالم چیزی نمایش نمی‌دهیم تا صفحه تمیز بماند
+  if (ok) return null;
+
+  // لاگ خطای اتصال در سرور
+  console.error(`[DbStatusBanner] DB connection failed: ${message}`);
+
   return (
     <div
-      className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
-        ok
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          : "border-danger/40 bg-danger/10 text-danger"
-      }`}
+      role="alert"
+      className="mb-6 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
     >
-      {ok ? (
-        <span>
-          ✅ اتصال به دیتابیس برقرار است — تعداد فیلم‌های دارای اطلاعات:{" "}
-          <strong>{(movieCount ?? 0).toLocaleString("fa-IR")}</strong>
-        </span>
-      ) : (
-        <span>❌ خطا در اتصال به دیتابیس: {message}</span>
-      )}
+      ❌ خطا در اتصال به دیتابیس: {message}
     </div>
   );
 }

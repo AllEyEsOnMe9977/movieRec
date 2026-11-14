@@ -21,7 +21,7 @@ export default function SearchBox({ initialSearch = "" }: SearchBoxProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-md gap-2">
+    <form onSubmit={handleSubmit} className="flex min-w-0 flex-1 max-w-md gap-2">
       <input
         type="text"
         value={value}

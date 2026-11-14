@@ -157,7 +157,7 @@ export default function DbRefreshButton() {
   const isConfirmed = confirmInput.trim().toUpperCase() === CONFIRM_KEYWORD;
 
   return (
-    <div className="inline-flex flex-col items-end gap-1.5">
+    <div className="relative inline-flex flex-col items-end gap-1.5">
       <button
         type="button"
         onClick={handleOpenModal}
@@ -180,7 +180,7 @@ export default function DbRefreshButton() {
       {feedback && (
         <div
           role="status"
-          className={`max-w-xs rounded-md border px-2.5 py-1 text-right text-xs ${
+          className={`absolute left-0 top-full z-30 mt-2 w-72 max-w-[80vw] rounded-md border px-2.5 py-1.5 text-right text-xs shadow-lg ${
             feedback.type === 'restored'
               ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
               : feedback.type === 'ignored'
