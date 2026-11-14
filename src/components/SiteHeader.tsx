@@ -12,13 +12,18 @@ export default function SiteHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="text-lg font-bold text-foreground">
-          🎬 آرشیو فیلم
-        </Link>
+        {/* گروه سمت راست: عنوان سایت و باکس جستجو در ابتدای محور RTL */}
+        <div className="flex flex-1 flex-wrap items-center gap-4">
+          <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-bold">
+            <span>🎬</span>
+            <span>آرشیو فیلم</span>
+          </Link>
+
+          <SearchBox initialSearch={initialSearch} />
+        </div>
+
+        {/* دکمه همگام‌سازی دیتابیس در سمت چپ */}
         <DbRefreshButton />
-        <SearchBox initialSearch={initialSearch} />
-      </div>
     </header>
   );
 }

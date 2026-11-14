@@ -1,8 +1,8 @@
+
 import type { Metadata } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 
-// فونت فارسی وزیرمتن - از گوگل فونتز لود می‌شود (نیاز به اینترنت هنگام build/dev دارد)
 const vazirmatn = Vazirmatn({
   variable: "--font-vazir",
   subsets: ["arabic"],
@@ -12,6 +12,31 @@ const vazirmatn = Vazirmatn({
 export const metadata: Metadata = {
   title: "آرشیو فیلم",
   description: "آرشیو شخصی فیلم‌ها با اطلاعات کامل و نقد",
+
+  icons: {
+    icon: [
+      {
+        url: "/favicon-96x96.png",
+        type: "image/png",
+        sizes: "96x96",
+      },
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      },
+      {
+        url: "/favicon.ico",
+        rel: "shortcut icon",
+      },
+    ],
+    apple: {
+      url: "/apple-touch-icon.png",
+      sizes: "180x180",
+      type: "image/png",
+    },
+  },
+
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
