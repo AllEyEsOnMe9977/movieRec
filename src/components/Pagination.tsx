@@ -38,7 +38,7 @@ export default function Pagination({ page, totalPages, search, sort }: Paginatio
   return (
     <nav
       aria-label="صفحه‌بندی"
-      className="mt-10 flex items-center justify-center gap-3 text-sm"
+      className="sticky bottom-4 z-10 mx-auto mt-10 flex w-fit items-center justify-center gap-3 rounded-2xl border border-border bg-background px-3 py-2 text-sm shadow-lg shadow-black/40"
     >
       {/* دکمه‌ی بعدی (سمت راست) */}
       {hasNext ? (

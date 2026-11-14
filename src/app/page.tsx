@@ -32,7 +32,8 @@ export default async function HomePage({
         />
 
         {/* نوار ابزار: تعداد نتایج (راست) و مرتب‌سازی (چپ) */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        {/* نوار ابزار چسبان: زیر هدر ثابت می‌ماند (top-16 ≈ ارتفاع هدر) */}
+        <div className="sticky top-16 z-10 -mx-4 mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-4 py-3">
           <p className="text-sm text-muted">
             {search ? <>نتایج «{search}» — </> : null}
             {moviesResult.total.toLocaleString("fa-IR")} فیلم
