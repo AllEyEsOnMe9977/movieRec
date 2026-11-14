@@ -34,33 +34,36 @@ export default function Pagination({ page, totalPages, search, sort }: Paginatio
   const active = "border-border bg-surface hover:bg-surface-hover";
   const disabled = "cursor-not-allowed border-border text-muted opacity-40";
 
-  // در RTL اولین عنصر سمت راست است: «قبلی» راست، «بعدی» چپ
+  // در RTL اولین عنصر سمت راست است: «بعدی» راست، «قبلی» چپ
   return (
     <nav
       aria-label="صفحه‌بندی"
       className="mt-10 flex items-center justify-center gap-3 text-sm"
     >
-      {hasPrev ? (
-        <Link href={buildHref(page - 1, search, sort)} className={`${base} ${active}`}>
-          → قبلی
+      {/* دکمه‌ی بعدی (سمت راست) */}
+      {hasNext ? (
+        <Link href={buildHref(page + 1, search, sort)} className={`${base} ${active}`}>
+          بعدی →
         </Link>
       ) : (
         <span aria-disabled="true" className={`${base} ${disabled}`}>
-          → قبلی
+          بعدی →
         </span>
       )}
 
+      {/* نمایشگر شماره صفحه (وسط) */}
       <span className="px-2 text-muted">
         صفحه {page.toLocaleString("fa-IR")} از {totalPages.toLocaleString("fa-IR")}
       </span>
 
-      {hasNext ? (
-        <Link href={buildHref(page + 1, search, sort)} className={`${base} ${active}`}>
-          بعدی ←
+      {/* دکمه‌ی قبلی (سمت چپ) */}
+      {hasPrev ? (
+        <Link href={buildHref(page - 1, search, sort)} className={`${base} ${active}`}>
+          ← قبلی
         </Link>
       ) : (
         <span aria-disabled="true" className={`${base} ${disabled}`}>
-          بعدی ←
+          ← قبلی
         </span>
       )}
     </nav>
