@@ -6,8 +6,8 @@ interface MovieCardProps {
   movie: Movie;
 }
 
-// فرمت فشرده‌ی تعداد رأی (مثلاً ۱.۲ میلیون) - یک بار ساخته می‌شود
-const votesFormatter = new Intl.NumberFormat("fa-IR", {
+// فرمت فشرده‌ی تعداد رأی با ارقام انگلیسی (مثلاً 777K یا 1.2M) - یک بار ساخته می‌شود
+const votesFormatter = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
@@ -33,11 +33,12 @@ interface ScoreChip {
 }
 
 // ساخت لیست نشان‌های امتیاز؛ فقط مواردی که داده‌ی معتبر دارند اضافه می‌شوند
-function buildScoreChips(movie: Movie): ScoreChip[] {
+// skipTmdb: اگر امتیاز TMDB قبلاً روی پوستر نمایش داده شده، دوباره به‌صورت نشان تکرار نمی‌شود
+function buildScoreChips(movie: Movie, skipTmdb: boolean): ScoreChip[] {
   const chips: ScoreChip[] = [];
 
   // امتیاز TMDB
-  if (isValidScore(movie.voteAverage)) {
+  if (!skipTmdb && isValidScore(movie.voteAverage)) {
     chips.push({
       key: "tmdb",
       text: `TMDB ${movie.voteAverage.toFixed(1)}`,
@@ -89,8 +90,15 @@ export default function MovieCard({ movie }: MovieCardProps) {
     console.warn(`[MovieCard] invalid imdbRating for movie ${movie.id}`);
   }
 
-  const showImdb = isValidScore(movie.imdbRating);
-  const chips = buildScoreChips(movie);
+  // امتیاز روی پوستر: اول IMDb، اگر موجود نبود TMDB
+  let posterScore: { value: number; source: "IMDb" | "TMDB" } | null = null;
+  if (isValidScore(movie.imdbRating)) {
+    posterScore = { value: movie.imdbRating, source: "IMDb" };
+  } else if (isValidScore(movie.voteAverage)) {
+    posterScore = { value: movie.voteAverage, source: "TMDB" };
+  }
+
+  const chips = buildScoreChips(movie, posterScore?.source === "TMDB");
 
   return (
     <Link
@@ -112,13 +120,16 @@ export default function MovieCard({ movie }: MovieCardProps) {
           </div>
         )}
 
-        {/* نشان اصلی: امتیاز IMDb روی پوستر */}
-        {showImdb && (
+        {/* نشان اصلی روی پوستر: امتیاز IMDb، و در نبود آن امتیاز TMDB (با برچسب منبع) */}
+        {posterScore && (
           <div
-            title="امتیاز IMDb"
+            title={`امتیاز ${posterScore.source}`}
             className="absolute top-2 right-2 rounded-md bg-black/70 px-2 py-1 text-xs font-bold text-amber-400 backdrop-blur"
           >
-            ★ {movie.imdbRating!.toFixed(1)}
+            ★ {posterScore.value.toFixed(1)}
+            {posterScore.source === "TMDB" && (
+              <span className="ml-1 text-[10px] font-medium opacity-70">TMDB</span>
+            )}
           </div>
         )}
       </div>
