@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* رنگ‌های اصلی تم تیره - همیشه فعال، مستقل از تنظیمات سیستم */
+:root {
+  --background: #0b0d12;
+  --surface: #14171f;
+  --surface-hover: #1b1f2a;
+  --border: #262b38;
+  --foreground: #edeef2;
+  --muted: #9aa1b1;
+  --accent: #e4b13c;
+  --accent-foreground: #14171f;
+  --danger: #f16d6d;
+  --font-vazir: "Vazirmatn", sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-vazir);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-vazir);
+}
+
+/* اسکرول‌بار هماهنگ با تم تیره */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-hover);
+}
+
+/* محدود کردن تعداد خطوط متن (برای خلاصه‌ی فیلم در کارت) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
