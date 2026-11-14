@@ -4,7 +4,7 @@ import pool, { logDb } from "./db";
 import { mapMovieRow, parseReviewJson } from "./mappers";
 import { normalizeSortOption, type Movie, type MovieRow, type Review, type SortOption } from "./types";
 
-const MOVIES_PER_PAGE = 24;
+const MOVIES_PER_PAGE = 16;
 
 interface MovieCountRow extends RowDataPacket {
   total: number;
@@ -18,22 +18,52 @@ interface ReviewRow extends RowDataPacket {
 
 // فقط فیلم‌هایی که واقعاً داده دارند (خیلی از ردیف‌های دیتابیس فقط id هستند و بقیه NULL)
 const HAS_DATA_CONDITION = "title IS NOT NULL";
-// نگاشت امن گزینه‌های مرتب‌سازی به عبارت ORDER BY (جلوگیری از SQL Injection و مدیریت مقادیر NULL)
-const SORT_ORDER_BY: Record<SortOption, string> = {
-  newest: "sent_at DESC, id DESC",
-  oldest: "sent_at ASC, id ASC",
-  imdb_rating: "(imdb_rating IS NULL OR imdb_rating = ''), CAST(imdb_rating AS DECIMAL(4,2)) DESC, imdb_votes DESC",
-  imdb_votes: "(imdb_votes IS NULL OR imdb_votes = 0), imdb_votes DESC",
-  vote_average: "(vote_average IS NULL OR vote_average = ''), CAST(vote_average AS DECIMAL(4,2)) DESC",
-  rotten_tomatoes: "(rotten_tomatoes IS NULL OR rotten_tomatoes = ''), CAST(REPLACE(rotten_tomatoes, '%', '') AS UNSIGNED) DESC",
-  metacritic: "(metacritic IS NULL OR metacritic = ''), CAST(SUBSTRING_INDEX(metacritic, '/', 1) AS UNSIGNED) DESC",
-  release_desc: "(release_date IS NULL OR release_date = ''), release_date DESC",
-  release_asc: "(release_date IS NULL OR release_date = ''), release_date ASC",
-  runtime_desc: "(runtime IS NULL OR runtime = 0), runtime DESC",
-  runtime_asc: "(runtime IS NULL OR runtime = 0), runtime ASC",
-  title_asc: "title ASC",
-};
 
+// عبارت‌های عددی امن: هر مقدار نامعتبر (N/A، خالی، صفر، متن) → NULL تا همیشه آخر لیست بیفتد
+const NUM = {
+  imdbRating:
+    "NULLIF(CASE WHEN imdb_rating REGEXP '^[0-9]+([.][0-9]+)?$' THEN CAST(imdb_rating AS DECIMAL(4,2)) END, 0)",
+  imdbVotes: "NULLIF(imdb_votes, 0)",
+  voteAverage:
+    "NULLIF(CASE WHEN vote_average REGEXP '^[0-9]+([.][0-9]+)?$' THEN CAST(vote_average AS DECIMAL(4,2)) END, 0)",
+  rottenTomatoes:
+    "CASE WHEN rotten_tomatoes REGEXP '^[0-9]+%?$' THEN CAST(REPLACE(rotten_tomatoes, '%', '') AS UNSIGNED) END",
+  metacritic:
+    "CASE WHEN metacritic REGEXP '^[0-9]+(/100)?$' THEN CAST(SUBSTRING_INDEX(metacritic, '/', 1) AS UNSIGNED) END",
+  releaseDate: "NULLIF(release_date, '')",
+  runtime: "NULLIF(runtime, 0)",
+  sentAt: "sent_at",
+} as const;
+
+// سازنده‌ی ORDER BY قطعی (deterministic):
+// 1) مقادیر NULL همیشه آخر  2) مرتب‌سازی اصلی  3) id به‌عنوان tiebreaker یکتا
+// بدون مرحله‌ی 3، ردیف‌های هم‌ارزش بین صفحات جابجا می‌شوند (تکرار/گم‌شدن فیلم)
+function buildOrderBy(
+  expr: string,
+  dir: "ASC" | "DESC",
+  secondary?: string // مرتب‌سازی ثانویه‌ی نزولی (اختیاری)
+): string {
+  const parts = [`(${expr} IS NULL) ASC`, `${expr} ${dir}`];
+  if (secondary) parts.push(`${secondary} DESC`);
+  parts.push(`id ${dir}`);
+  return parts.join(", ");
+}
+
+// نگاشت امن گزینه‌های مرتب‌سازی به عبارت ORDER BY (جلوگیری از SQL Injection)
+const SORT_ORDER_BY: Record<SortOption, string> = {
+  newest: buildOrderBy(NUM.sentAt, "DESC"),
+  oldest: buildOrderBy(NUM.sentAt, "ASC"),
+  imdb_rating: buildOrderBy(NUM.imdbRating, "DESC", NUM.imdbVotes),
+  imdb_votes: buildOrderBy(NUM.imdbVotes, "DESC"),
+  vote_average: buildOrderBy(NUM.voteAverage, "DESC"),
+  rotten_tomatoes: buildOrderBy(NUM.rottenTomatoes, "DESC"),
+  metacritic: buildOrderBy(NUM.metacritic, "DESC"),
+  release_desc: buildOrderBy(NUM.releaseDate, "DESC"),
+  release_asc: buildOrderBy(NUM.releaseDate, "ASC"),
+  runtime_desc: buildOrderBy(NUM.runtime, "DESC"),
+  runtime_asc: buildOrderBy(NUM.runtime, "ASC"),
+  title_asc: "title ASC, id ASC",
+};
 
 export interface GetMoviesResult {
   movies: Movie[];
@@ -48,11 +78,13 @@ export async function getMovies(params: {
   search?: string;
   sort?: SortOption;
 }): Promise<GetMoviesResult> {
-  const page = Math.max(1, params.page ?? 1);
+  // شماره‌ی صفحه باید عدد صحیح ≥ 1 باشد (مثلاً ?page=1.5 یا ?page=abc نباید خطا بدهد)
+  const requestedPage = Number.isFinite(params.page)
+    ? Math.max(1, Math.floor(params.page as number))
+    : 1;
   const search = params.search?.trim() ?? "";
   const sort = normalizeSortOption(params.sort);
   const orderBySql = SORT_ORDER_BY[sort];
-  const offset = (page - 1) * MOVIES_PER_PAGE;
 
   const whereClauses = [HAS_DATA_CONDITION];
   const whereParams: unknown[] = [];
@@ -65,7 +97,7 @@ export async function getMovies(params: {
 
   const whereSql = whereClauses.join(" AND ");
 
-  logDb("در حال گرفتن لیست فیلم‌ها", { page, search, sort });
+  logDb("در حال گرفتن لیست فیلم‌ها", { page: requestedPage, search, sort, orderBy: orderBySql });
 
   try {
     const [countRows] = await pool.query<MovieCountRow[]>(
@@ -74,6 +106,13 @@ export async function getMovies(params: {
     );
     const total = countRows[0]?.total ?? 0;
     const totalPages = Math.max(1, Math.ceil(total / MOVIES_PER_PAGE));
+
+    // اگر صفحه‌ی درخواستی بیشتر از آخرین صفحه باشد، به آخرین صفحه برمی‌گردیم (به‌جای گرید خالی)
+    const page = Math.min(requestedPage, totalPages);
+    if (page !== requestedPage) {
+      logDb("صفحه‌ی درخواستی خارج از بازه بود و اصلاح شد", { requestedPage, page, totalPages });
+    }
+    const offset = (page - 1) * MOVIES_PER_PAGE;
 
     const [rows] = await pool.query<(MovieRow & RowDataPacket)[]>(
       `SELECT id, title, original_title, overview, release_date, poster_path,
