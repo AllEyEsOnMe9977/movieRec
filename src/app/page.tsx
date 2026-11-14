@@ -31,17 +31,16 @@ export default async function HomePage({
           movieCount={dbStatus.movieCount}
         />
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {search ? (
+        {/* قرارگیری باکس مرتب‌سازی در سمت راست (ابتدای محور RTL) */}
+        <div className="mb-4 flex flex-wrap items-center justify-start gap-4">
+          <SortSelect currentSort={sort} />
+
+          {search && (
             <p className="text-sm text-muted">
               نتایج جستجو برای «{search}» — {moviesResult.total.toLocaleString("fa-IR")}{" "}
               مورد
             </p>
-          ) : (
-            <div />
           )}
-
-          <SortSelect currentSort={sort} />
         </div>
 
         <MovieGrid movies={moviesResult.movies} />
