@@ -2,7 +2,9 @@ import DbStatusBanner from "@/components/DbStatusBanner";
 import MovieGrid from "@/components/MovieGrid";
 import Pagination from "@/components/Pagination";
 import SiteHeader from "@/components/SiteHeader";
+import SortSelect from "@/components/SortSelect";
 import { getMovies, testDbConnection } from "@/lib/movies";
+import { normalizeSortOption } from "@/lib/types";
 
 // این صفحه سمت سرور رندر می‌شود (Server Component) و مستقیم از دیتابیس داده می‌خواند
 export default async function HomePage({
@@ -12,10 +14,11 @@ export default async function HomePage({
   const search = typeof params.q === "string" ? params.q : "";
   const pageParam = typeof params.page === "string" ? params.page : "1";
   const page = Number.isFinite(Number(pageParam)) ? Number(pageParam) : 1;
+  const sort = normalizeSortOption(typeof params.sort === "string" ? params.sort : undefined);
 
   const [dbStatus, moviesResult] = await Promise.all([
     testDbConnection(),
-    getMovies({ page, search }),
+    getMovies({ page, search, sort }),
   ]);
 
   return (
@@ -28,12 +31,18 @@ export default async function HomePage({
           movieCount={dbStatus.movieCount}
         />
 
-        {search && (
-          <p className="mb-4 text-sm text-muted">
-            نتایج جستجو برای «{search}» — {moviesResult.total.toLocaleString("fa-IR")}{" "}
-            مورد
-          </p>
-        )}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          {search ? (
+            <p className="text-sm text-muted">
+              نتایج جستجو برای «{search}» — {moviesResult.total.toLocaleString("fa-IR")}{" "}
+              مورد
+            </p>
+          ) : (
+            <div />
+          )}
+
+          <SortSelect currentSort={sort} />
+        </div>
 
         <MovieGrid movies={moviesResult.movies} />
 
@@ -41,6 +50,7 @@ export default async function HomePage({
           page={moviesResult.page}
           totalPages={moviesResult.totalPages}
           search={search}
+          sort={sort}
         />
       </main>
     </>

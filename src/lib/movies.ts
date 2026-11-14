@@ -2,7 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2";
 import pool, { logDb } from "./db";
 import { mapMovieRow, parseReviewJson } from "./mappers";
-import type { Movie, MovieRow, Review } from "./types";
+import { normalizeSortOption, type Movie, type MovieRow, type Review, type SortOption } from "./types";
 
 const MOVIES_PER_PAGE = 24;
 
@@ -18,6 +18,22 @@ interface ReviewRow extends RowDataPacket {
 
 // فقط فیلم‌هایی که واقعاً داده دارند (خیلی از ردیف‌های دیتابیس فقط id هستند و بقیه NULL)
 const HAS_DATA_CONDITION = "title IS NOT NULL";
+// نگاشت امن گزینه‌های مرتب‌سازی به عبارت ORDER BY (جلوگیری از SQL Injection و مدیریت مقادیر NULL)
+const SORT_ORDER_BY: Record<SortOption, string> = {
+  newest: "sent_at DESC, id DESC",
+  oldest: "sent_at ASC, id ASC",
+  imdb_rating: "(imdb_rating IS NULL OR imdb_rating = ''), CAST(imdb_rating AS DECIMAL(4,2)) DESC, imdb_votes DESC",
+  imdb_votes: "(imdb_votes IS NULL OR imdb_votes = 0), imdb_votes DESC",
+  vote_average: "(vote_average IS NULL OR vote_average = ''), CAST(vote_average AS DECIMAL(4,2)) DESC",
+  rotten_tomatoes: "(rotten_tomatoes IS NULL OR rotten_tomatoes = ''), CAST(REPLACE(rotten_tomatoes, '%', '') AS UNSIGNED) DESC",
+  metacritic: "(metacritic IS NULL OR metacritic = ''), CAST(SUBSTRING_INDEX(metacritic, '/', 1) AS UNSIGNED) DESC",
+  release_desc: "(release_date IS NULL OR release_date = ''), release_date DESC",
+  release_asc: "(release_date IS NULL OR release_date = ''), release_date ASC",
+  runtime_desc: "(runtime IS NULL OR runtime = 0), runtime DESC",
+  runtime_asc: "(runtime IS NULL OR runtime = 0), runtime ASC",
+  title_asc: "title ASC",
+};
+
 
 export interface GetMoviesResult {
   movies: Movie[];
@@ -30,9 +46,12 @@ export interface GetMoviesResult {
 export async function getMovies(params: {
   page?: number;
   search?: string;
+  sort?: SortOption;
 }): Promise<GetMoviesResult> {
   const page = Math.max(1, params.page ?? 1);
   const search = params.search?.trim() ?? "";
+  const sort = normalizeSortOption(params.sort);
+  const orderBySql = SORT_ORDER_BY[sort];
   const offset = (page - 1) * MOVIES_PER_PAGE;
 
   const whereClauses = [HAS_DATA_CONDITION];
@@ -46,7 +65,7 @@ export async function getMovies(params: {
 
   const whereSql = whereClauses.join(" AND ");
 
-  logDb("در حال گرفتن لیست فیلم‌ها", { page, search });
+  logDb("در حال گرفتن لیست فیلم‌ها", { page, search, sort });
 
   try {
     const [countRows] = await pool.query<MovieCountRow[]>(
@@ -62,7 +81,7 @@ export async function getMovies(params: {
               genres, runtime, sent_at, rotten_tomatoes, metacritic, trailer_key
        FROM movies
        WHERE ${whereSql}
-       ORDER BY sent_at DESC
+       ORDER BY ${orderBySql}
        LIMIT ? OFFSET ?`,
       [...whereParams, MOVIES_PER_PAGE, offset]
     );

@@ -65,3 +65,41 @@ export interface Review {
   data: ReviewData | null;
   raw: string | null; // اگر JSON parse نشد، متن خام را نگه می‌داریم
 }
+
+
+// گزینه‌های مرتب‌سازی لیست فیلم‌ها بر اساس ستون‌های موجود در جدول movies
+export type SortOption =
+  | "newest"
+  | "oldest"
+  | "imdb_rating"
+  | "imdb_votes"
+  | "vote_average"
+  | "rotten_tomatoes"
+  | "metacritic"
+  | "release_desc"
+  | "release_asc"
+  | "runtime_desc"
+  | "runtime_asc"
+  | "title_asc";
+
+export const SORT_OPTIONS: ReadonlyArray<{ value: SortOption; label: string }> = [
+  { value: "newest", label: "جدیدترین (پیش‌فرض)" },
+  { value: "oldest", label: "قدیمی‌ترین اضافه‌شده" },
+  { value: "imdb_rating", label: "بالاترین امتیاز IMDb" },
+  { value: "imdb_votes", label: "محبوب‌ترین (بیشترین رأی IMDb)" },
+  { value: "vote_average", label: "بالاترین امتیاز TMDB" },
+  { value: "rotten_tomatoes", label: "بالاترین امتیاز Rotten Tomatoes" },
+  { value: "metacritic", label: "بالاترین امتیاز Metacritic" },
+  { value: "release_desc", label: "جدیدترین سال ساخت" },
+  { value: "release_asc", label: "قدیمی‌ترین سال ساخت" },
+  { value: "runtime_desc", label: "طولانی‌ترین زمان" },
+  { value: "runtime_asc", label: "کوتاه‌ترین زمان" },
+  { value: "title_asc", label: "عنوان (الف - ی / A - Z)" },
+];
+
+export function normalizeSortOption(value?: string | null): SortOption {
+  if (value && SORT_OPTIONS.some((opt) => opt.value === value)) {
+    return value as SortOption;
+  }
+  return "newest";
+}
